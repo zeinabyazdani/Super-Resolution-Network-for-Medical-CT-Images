@@ -1,0 +1,96 @@
+import numpy as np
+import os
+from PIL import Image
+from sklearn.model_selection import train_test_split
+from matplotlib import pyplot as plt
+import pandas as pd
+
+class data_loader():
+  def __init__(self, directory, crop_size=28):
+    # Initialize the data loader with the specified directory and crop size
+    self.directory = directory
+    self.crop_size = crop_size
+
+  def load(self):
+    # Load images from the specified directory
+    file_names = os.listdir(self.directory)
+    self.feat = np.empty((self.crop_size * self.crop_size, len(file_names)))
+    self.images = np.empty((self.crop_size, self.crop_size, len(file_names)))
+    self.lbl = []
+    for i, file_name in enumerate(file_names):
+      if (file_name.endswith(".bmp")):
+        # Read and preprocess images, and extract labels
+        img = Image.open(self.directory + '/' + file_name).resize((self.crop_size, self.crop_size))
+        self.images[:, :, i] = img
+        self.feat[:, i] = np.array(img, dtype=int).flatten()
+        self.lbl.append(int(file_name.split('.')[0][-1]))
+
+    # Convert labels to numpy array and create one-hot encoding
+    # ref : https://www.geeksforgeeks.org/how-to-convert-an-array-of-indices-to-one-hot-encoded-numpy-array/
+    self.lbl = np.array(self.lbl)
+    self.lbl_one_hot = np.eye(np.max(self.lbl) + 1)[self.lbl].T
+    self.number_of_clasess = len(set(self.lbl))
+
+  def preprocess(self, train_data=None, Preprocess='Normal', mode='sample_wise'):
+    # Preprocess the data either sample-wise
+    if mode == 'sample_wise':
+        if Preprocess == 'Standard':
+          # Standardize the features
+          self.feat = (self.feat - np.mean(self.feat, 0)) / np.std(self.feat, 0)
+        if Preprocess == 'Normal':
+          # Normalize the features
+          self.feat = (self.feat - np.min(self.feat, 0)) / (np.max(self.feat, 0) - np.min(self.feat, 0))
+
+    if mode == 'feature_wise':
+      if train_data is not None:
+        # Use provided training data statistics for feature-wise normalization of test data
+        self.mu = train_data.mu
+        self.std = train_data.std
+        self.max = train_data.max
+        self.min = train_data.min
+      else:
+        # Calculate mean, standard deviation, max, and min for feature-wise normalization of train data
+        self.mu = np.mean(self.feat, 1).reshape(-1, 1)
+        self.std = np.std(self.feat, 1).reshape(-1, 1)
+        self.max = np.max(self.feat, 1).reshape(-1, 1)
+        self.min = np.min(self.feat, 1).reshape(-1, 1)
+
+      # Apply feature-wise normalization
+      if Preprocess == 'Standard':
+          self.feat = (self.feat - self.mu) / self.std
+      if Preprocess == 'Normal':
+          self.feat = (self.feat - self.min) / (self.max - self.min)
+
+  def split(self, valid_size=0.1):
+    # Split the data into training and validation sets
+    self.X_train, self.X_valid, self.Y_train, self.Y_valid = train_test_split(self.feat.T, self.lbl_one_hot.T, test_size=valid_size, stratify=self.lbl_one_hot.T, random_state=123)
+    self.X_train, self.X_valid, self.Y_train, self.Y_valid = self.X_train.T, self.X_valid.T, self.Y_train.T, self.Y_valid.T
+
+  def visualization(self, Number_per_class=5):
+    # Visualize random samples from each class
+    indx_array = []
+    for p in range(self.number_of_clasess):
+      indx = np.argwhere(self.lbl == p).squeeze()
+      indx_array.append(np.random.choice(indx, Number_per_class, replace=False))
+    indx_array = np.array(indx_array).T
+
+    ax = plt.figure(figsize=(200, 50))
+    counter = 0
+    for i in indx_array.flatten():
+      plt.subplot(Number_per_class, self.number_of_clasess, counter + 1)
+      im = self.images[:, :, i]
+      plt.imshow(im, cmap='gray')
+      plt.axis('off')
+      counter += 1
+    plt.tight_layout(pad=2)
+    plt.show()
+
+  def dist(self):
+    # Display the class distribution
+    df = pd.DataFrame(self.lbl)
+    plt.bar(np.arange(self.number_of_clasess), df.value_counts())
+    plt.xticks(np.arange(self.number_of_clasess))
+    plt.xlabel('Class')
+    plt.ylabel('Count')
+    plt.title('Class Distribution')
+    plt.show()

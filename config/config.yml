@@ -1,0 +1,55 @@
+# Configuration settings
+
+# Number of training samples
+size_train : 10 
+
+# Number of validation samples
+size_val : 5
+
+# Number of test samples
+size_test : 5
+
+# Size of the test images
+test_image_size : 128
+
+# Size of the crop for training (and validation) images
+train_crop_size : 20
+
+# Flag to indicate whether pretrianed model is loaded (Only inference and not training)
+Pretrain : True
+
+# Number of input channels (e.g., grayscale image has 1 channel, RGB image has 3 channels)
+num_input : 1
+
+# Number of features in the channels of layers in the network
+num_features : 16
+
+# Number of IDMAB
+B_num : 1
+
+# Number of IDMAG 
+G_num : 1
+
+# Reduction factor for the multi-branch attention (MBA) mechanism
+mba_r : 16
+
+# Number of branches in the MBA mechanism
+mba_n : 2
+
+# Kernel sizes for each branch in the MBA mechanism
+mba_kn : [3, 5]
+
+# Loss function to use ('L1' or 'MSE')
+loss : 'MSE'
+
+# Learning rate for the optimizer
+lr : 0.001
+
+# Step size for the learning rate scheduler
+step_size : 10
+
+# Multiplicative factor of learning rate decay
+gamma : 0.99
+
+# Number of epochs for training
+epoch_number : 2
